@@ -4,7 +4,9 @@ import {
   useColorScheme,
   View,
   Text,
+  Image,
 } from 'react-native';
+import Onboardings from '@/screens/Onboardings.tsx';
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
@@ -16,7 +18,8 @@ function App() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={'light-content'} />
-      <Text>Hello World</Text>
+      {/* <Onboardings /> */}
+      <Onboardings />
     </SafeAreaProvider>
   );
 }
