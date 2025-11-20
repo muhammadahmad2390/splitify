@@ -1,11 +1,23 @@
-import { Text, View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Animated, FlatList } from 'react-native';
 import NextButton from '@/components/atoms/NextButton';
+import PaginatorDots from '../atoms/PaginatorDots';
+import { OnboardingItemsProps } from '@/types/Onboarding';
 
-const Paginator = () => {
+const Paginator = ({
+  ScrollX,
+  slide,
+  slideIndex,
+  scrollTo,
+}: {
+  ScrollX: Animated.Value;
+  slide: React.RefObject<FlatList<OnboardingItemsProps> | null>;
+  slideIndex: number;
+  scrollTo: () => void;
+}) => {
   return (
     <View style={styles.container}>
-      <Text>Dots</Text>
-      <NextButton />
+      <PaginatorDots scrollX={ScrollX} />
+      <NextButton scrollTo={scrollTo} slideIndex={slideIndex} />
     </View>
   );
 };

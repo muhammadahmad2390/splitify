@@ -1,25 +1,33 @@
-import {
-  StatusBar,
-  StyleSheet,
-  useColorScheme,
-  View,
-  Text,
-  Image,
-} from 'react-native';
-import Onboardings from '@/screens/Onboardings.tsx';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import { StatusBar, StyleSheet, useColorScheme } from 'react-native';
+import RootNavigation from './navigation/RootNavigator';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from 'react';
+
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 function App() {
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<
+    boolean | undefined
+  >(undefined);
   const isDarkMode = useColorScheme() === 'dark';
+
+  const checkOnboarding = async () => {
+    const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
+    if (hasSeenOnboarding != null) {
+      setHasSeenOnboarding(true);
+    } else {
+      setHasSeenOnboarding(false);
+    }
+  };
+
+  useEffect(() => {
+    checkOnboarding();
+  }, []);
 
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={'light-content'} />
-      {/* <Onboardings /> */}
-      <Onboardings />
+      <RootNavigation hasSeenOnboarding={hasSeenOnboarding} />
     </SafeAreaProvider>
   );
 }

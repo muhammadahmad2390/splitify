@@ -4,7 +4,7 @@ const SvgComponent = (props: SvgProps) => (
   <Svg viewBox="0 0 512 512" {...props}>
     <Path
       fill="none"
-      stroke="currentColor"
+      stroke="white"
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth={48}

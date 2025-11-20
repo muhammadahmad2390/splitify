@@ -14,9 +14,6 @@ const OnboardingItem = ({ item }: { item: OnboardingItemsProps }) => {
           source={item.img}
         />
       </View>
-      {/* <View style={styles.textContainer}>
-        <Text style={styles.description}>{item.description}</Text>
-      </View> */}
     </View>
   );
 };
