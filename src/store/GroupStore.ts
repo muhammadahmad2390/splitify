@@ -28,10 +28,13 @@ export interface Group {
   _id: string;
   title: string;
   description?: string;
+  lastRelevantActivity: string;
+  pendingCount: number;
   currency: string;
   myRole: 'admin' | 'member';
   members: GroupMemberUser[]; // list screen — just user objects
   updatedAt: string;
+  autoAcceptSettlements: boolean;
 }
 
 export interface GroupDetails {
@@ -178,8 +181,10 @@ export const useGroupStore = create<GroupState>()((set, get) => ({
     set({ groupsLoading: true, error: null });
     try {
       const { data } = await api.get('/groups');
+      console.log('groupppppp ', data.groups);
       set({ groups: data.groups, groupsLoading: false });
     } catch (err: any) {
+      console.log('error.........', err);
       set({ error: extractError(err), groupsLoading: false });
       throw err;
     }
@@ -194,6 +199,7 @@ export const useGroupStore = create<GroupState>()((set, get) => ({
     try {
       const { data } = await api.post('/groups', groupData);
       // Optimistically add to list — backend returns full group in data.body
+
       set(state => ({
         groups: [
           {
@@ -201,7 +207,12 @@ export const useGroupStore = create<GroupState>()((set, get) => ({
             title: data.body.title,
             description: data.body.description,
             currency: data.body.currency,
+            pendingCount: data.body.pendingCount,
+            lastRelevantActivity: data.body.lastRelevantActivity,
             myRole: 'admin',
+            autoAcceptSettlements:
+              data.body.members?.[0]?.preferences?.autoAcceptSettlements ??
+              false,
             members: data.body.members,
             updatedAt: data.body.updatedAt,
           },

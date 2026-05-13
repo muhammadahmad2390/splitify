@@ -1,5 +1,8 @@
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Avatar from '@/components/atoms/Avatar';
+import { theme } from '@/theme';
+
+const { colors, fontSize, fontWeight } = theme;
 
 interface Member {
   name: string;
@@ -33,6 +36,7 @@ export const getMemberColor = (name: string): string => {
 
 const MemberStack = ({ members, size = 28, max = 4 }: MemberStackProps) => {
   const visible = members.slice(0, max);
+  const extra = members.length > max ? members.length - max : 0;
 
   return (
     <View style={s.row}>
@@ -48,6 +52,14 @@ const MemberStack = ({ members, size = 28, max = 4 }: MemberStackProps) => {
           />
         </View>
       ))}
+      {extra > 0 && (
+        <Text
+          style={[s.moreLabel, { marginLeft: Math.max(4, size * 0.2) }]}
+          numberOfLines={1}
+        >
+          +{extra} others
+        </Text>
+      )}
     </View>
   );
 };
@@ -59,6 +71,11 @@ const s = StyleSheet.create({
   },
   avatarWrap: {
     zIndex: 1,
+  },
+  moreLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
   },
 });
 

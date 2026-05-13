@@ -23,40 +23,12 @@ import { useAuthStore } from '@/store/AuthStore';
 import EvilIcons from 'react-native-vector-icons/EvilIcons';
 import { useUserStore } from '@/store/UserStore';
 import { useGroupStore } from '@/store/GroupStore';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 const { colors, spacing, radius, fontSize, fontWeight } = theme;
-
-// ─── Mock data — replace with real API calls ──────────────────────────────────
-const MOCK_GROUPS: GroupCardData[] = [
-  {
-    _id: 'g1',
-    title: 'Trip to Hunza',
-    lastActivity: '2h ago',
-    net: -1450,
-    members: [{ name: 'You' }, { name: 'Ali' }, { name: 'Sara' }],
-    pendingCount: 1,
-  },
-  {
-    _id: 'g2',
-    title: 'Roommates',
-    lastActivity: 'Yesterday',
-    net: 2500,
-    members: [
-      { name: 'You' },
-      { name: 'Ali' },
-      { name: 'Sara' },
-      { name: 'Omar' },
-    ],
-    autoAccept: true,
-  },
-  {
-    _id: 'g3',
-    title: 'Office Lunch Club',
-    lastActivity: 'Tue',
-    net: -150,
-    members: [{ name: 'Ali' }, { name: 'Sara' }, { name: 'Omar' }],
-  },
-];
 
 const MOCK_ACTIVITY: ActivityItemData[] = [
   {
@@ -104,16 +76,37 @@ const MOCK_ACTIVITY: ActivityItemData[] = [
 const HomeScreen = ({ navigation }: { navigation: any }) => {
   const { user } = useAuthStore();
   const { balances, fetchBalances } = useUserStore();
-  const { groups, fetchGroups } = useGroupStore();
+  const { groups, groupsLoading, fetchGroups } = useGroupStore();
   const [search, setSearch] = useState('');
   const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
+
+  // ← Merge groups with balance data
+  const groupsWithBalances: GroupCardData[] = groups.map(g => {
+    const balanceEntry = balances?.byGroup?.find(b => b.group._id === g._id);
+    const youAreOwed = balanceEntry?.youAreOwed ?? 0;
+    const youOwe = balanceEntry?.youOwe ?? 0;
+    const net = youAreOwed - youOwe;
+
+    return {
+      _id: g._id,
+      title: g.title,
+      myLastRelevantActivity: dayjs(g.lastRelevantActivity).fromNow(),
+      net,
+      autoAccept: g.autoAcceptSettlements,
+      pendingCount: g.pendingCount,
+      members: g.members.map(m => ({
+        name: m.name,
+        avatar: m.avatar,
+      })),
+    };
+  });
 
   useEffect(() => {
     fetchBalances();
     fetchGroups();
   }, []);
 
-  const filteredGroups = groups.filter(g =>
+  const filteredGroups = groupsWithBalances.filter(g =>
     g.title.toLowerCase().includes(search.toLowerCase()),
   );
 

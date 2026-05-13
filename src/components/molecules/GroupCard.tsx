@@ -1,23 +1,22 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { theme } from '@/theme';
 import MemberStack from '@/components/molecules/MemberStack';
 import MoneyText from '@/components/atoms/MoneyText';
+import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
+import Entypo from 'react-native-vector-icons/Entypo';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { colors, spacing, radius, fontSize, fontWeight } = theme;
 
 export interface GroupCardData {
   _id: string;
   title: string;
-  lastActivity?: string;
+  myLastRelevantActivity?: string;
   net: number;
   members: { name: string; color?: string; avatar?: string }[];
   pendingCount?: number;
-  autoAccept?: boolean;
+  autoAccept: boolean;
 }
 
 interface GroupCardProps {
@@ -33,14 +32,17 @@ const GroupCard = ({
   onAddExpense,
   onSettleUp,
 }: GroupCardProps) => {
-  const { title, lastActivity, net, members, pendingCount, autoAccept } = group;
+  const {
+    title,
+    myLastRelevantActivity,
+    net,
+    members,
+    pendingCount,
+    autoAccept,
+  } = group;
 
   return (
-    <TouchableOpacity
-      style={s.card}
-      onPress={onPress}
-      activeOpacity={0.85}
-    >
+    <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.85}>
       {/* ── Badges ── */}
       <View style={s.badgeRow}>
         {autoAccept && (
@@ -62,14 +64,16 @@ const GroupCard = ({
       {/* ── Top row ── */}
       <View style={s.topRow}>
         <View style={s.titleRow}>
-          <Text style={s.groupIcon}>👥</Text>
-          <Text style={s.title} numberOfLines={1}>{title}</Text>
+          <FontAwesome6 name="user-group" />
+          <Text style={s.title} numberOfLines={1}>
+            {title}
+          </Text>
         </View>
         <Text style={s.chevron}>›</Text>
       </View>
 
-      {lastActivity && (
-        <Text style={s.activity}>Last activity · {lastActivity}</Text>
+      {myLastRelevantActivity && (
+        <Text style={s.activity}>Last activity · {myLastRelevantActivity}</Text>
       )}
 
       {/* ── Bottom row ── */}
@@ -77,17 +81,26 @@ const GroupCard = ({
         <MemberStack members={members} size={26} />
         <View style={s.netBlock}>
           {net > 0 ? (
-            <Text style={[s.netLabel, { color: colors.success }]}>
-              ↑ You are owed
-            </Text>
+            <View style={s.status}>
+              <AntDesign name="arrowup" size={13} color={colors.success} />
+              <Text style={[s.netLabel, { color: colors.success }]}>
+                You are owed
+              </Text>
+            </View>
           ) : net < 0 ? (
-            <Text style={[s.netLabel, { color: colors.danger }]}>
-              ↓ You owe
-            </Text>
+            <View style={s.status}>
+              <AntDesign name="arrowdown" size={13} color={colors.danger} />
+              <Text style={[s.netLabel, { color: colors.danger }]}>
+                You owe
+              </Text>
+            </View>
           ) : (
-            <Text style={[s.netLabel, { color: colors.textSecondary }]}>
-              ✓ Settled
-            </Text>
+            <View style={s.status}>
+              <Entypo name="check" />
+              <Text style={[s.netLabel, { color: colors.textSecondary }]}>
+                Settled
+              </Text>
+            </View>
           )}
           <MoneyText amount={net} size={fontSize.md} />
         </View>
@@ -100,14 +113,28 @@ const GroupCard = ({
           onPress={onAddExpense}
           activeOpacity={0.7}
         >
-          <Text style={s.actionBtnGrayText}>🧾 Add expense</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <MaterialCommunityIcons
+              name="receipt"
+              size={18}
+              color={s.actionBtnGrayText}
+            />
+            <Text style={s.actionBtnGrayText}>Add expense</Text>
+          </View>
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.actionBtn, s.actionBtnGreen]}
           onPress={onSettleUp}
           activeOpacity={0.7}
         >
-          <Text style={s.actionBtnGreenText}>⇄ Settle up</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <MaterialCommunityIcons
+              name="swap-horizontal"
+              size={18}
+              color={colors.success}
+            />
+            <Text style={s.actionBtnGreenText}>Settle up</Text>
+          </View>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -145,6 +172,13 @@ const s = StyleSheet.create({
   badgeAmber: {
     backgroundColor: '#fffbeb',
     borderColor: '#fcd34d',
+  },
+  status: {
+    display: 'flex',
+    flexDirection: 'row',
+    gap: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   badgeText: {
     fontSize: fontSize.xs,
