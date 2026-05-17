@@ -157,7 +157,7 @@ interface GroupState {
 export const useGroupStore = create<GroupState>()((set, get) => ({
   // ── Initial state ───────────────────────────────────────────────────────────
   groups: [],
-  groupsLoading: false,
+  groupsLoading: true,
 
   groupDetails: {},
   groupDetailsLoading: false,
@@ -181,7 +181,7 @@ export const useGroupStore = create<GroupState>()((set, get) => ({
     set({ groupsLoading: true, error: null });
     try {
       const { data } = await api.get('/groups');
-      console.log('groupppppp ', data.groups);
+      console.log('grouppppppHHH ', data.groups);
       set({ groups: data.groups, groupsLoading: false });
     } catch (err: any) {
       console.log('error.........', err);

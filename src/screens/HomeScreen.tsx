@@ -8,9 +8,9 @@ import {
   TextInput,
   Modal,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BlurView } from '@react-native-community/blur';
 import { theme } from '@/theme';
 import SummaryCards from '@/components/molecules/SummaryCards';
 import GroupCard, { GroupCardData } from '@/components/molecules/GroupCard';
@@ -21,6 +21,10 @@ import SectionHeader from '@/components/atoms/SectionHeader';
 import Avatar from '@/components/atoms/Avatar';
 import { useAuthStore } from '@/store/AuthStore';
 import EvilIcons from 'react-native-vector-icons/EvilIcons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { ActivityIndicator } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { useUserStore } from '@/store/UserStore';
 import { useGroupStore } from '@/store/GroupStore';
 import dayjs from 'dayjs';
@@ -76,11 +80,12 @@ const MOCK_ACTIVITY: ActivityItemData[] = [
 const HomeScreen = ({ navigation }: { navigation: any }) => {
   const { user } = useAuthStore();
   const { balances, fetchBalances } = useUserStore();
-  const { groups, groupsLoading, fetchGroups } = useGroupStore();
+  const { groups, groupsLoading, fetchGroups, error } = useGroupStore();
   const [search, setSearch] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
 
-  // ← Merge groups with balance data
+
   const groupsWithBalances: GroupCardData[] = groups.map(g => {
     const balanceEntry = balances?.byGroup?.find(b => b.group._id === g._id);
     const youAreOwed = balanceEntry?.youAreOwed ?? 0;
@@ -101,9 +106,30 @@ const HomeScreen = ({ navigation }: { navigation: any }) => {
     };
   });
 
+  // Total pending settlements across all groups where you are the recipient
+  const totalPendingSettlements = groups.reduce(
+    (sum, g) => sum + (g.pendingCount ?? 0),
+    0,
+  );
+  
+  const loadData = async () => {
+    await Promise.all([
+      fetchBalances().catch(() => {}),
+      fetchGroups().catch(() => {}),
+    ]);
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([fetchGroups(), fetchBalances()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
-    fetchBalances();
-    fetchGroups();
+    loadData().catch(() => {});
   }, []);
 
   const filteredGroups = groupsWithBalances.filter(g =>
@@ -138,67 +164,153 @@ const HomeScreen = ({ navigation }: { navigation: any }) => {
             onChangeText={setSearch}
           />
         </View>
-        <TouchableOpacity style={s.newGroupBtn} activeOpacity={0.85}>
-          <Text style={s.newGroupText}>+ New</Text>
+        <TouchableOpacity
+          style={s.newGroupBtn}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('CreateGroup')}
+        >
+          <MaterialIcons
+            name="group-add"
+            color={colors.textOnPrimary}
+            size={24}
+          />
         </TouchableOpacity>
       </View>
+
+      {/* ── Pending settlements banner ── */}
+      {!search && totalPendingSettlements > 0 && (
+        <TouchableOpacity
+          style={s.pendingBanner}
+          activeOpacity={0.85}
+          onPress={() => {}} // wire to settlements screen
+        >
+          <View style={s.pendingBannerLeft}>
+            <Ionicons name="time-outline" size={16} color={colors.warning} />
+            <Text style={s.pendingBannerText}>
+              {totalPendingSettlements === 1
+                ? '1 settlement needs your approval'
+                : `${totalPendingSettlements} settlements need your approval`}
+            </Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={colors.textSecondary}
+          />
+        </TouchableOpacity>
+      )}
 
       <ScrollView
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
       >
         {/* ── Summary cards ── */}
+        {!search && (
         <SummaryCards
           youAreOwed={balances?.totalOwed ?? 0}
           youOwe={balances?.totalOwing ?? 0}
           net={balances?.net ?? 0}
         />
+      )}
 
         {/* ── Groups ── */}
-        <View style={s.section}>
+        <View style={[s.section, search && s.sectionSearching]}>
+        {!search && (
           <SectionHeader
             title="Your groups"
-            actionLabel="View all"
-            onAction={() => {}}
+            actionLabel="Manage"
+            onAction={() => navigation.navigate('Groups')}
           />
-          <View style={s.groupList}>
-            {filteredGroups.map(g => (
-              <GroupCard
-                key={g._id}
-                group={g}
-                onPress={() =>
-                  navigation.navigate('GroupDetails', { groupId: g._id })
-                }
-                onAddExpense={() => {}}
-                onSettleUp={() => {}}
-              />
-            ))}
-          </View>
-        </View>
+        )}
 
-        {/* ── Recent activity ── */}
-        <View style={s.section}>
-          <SectionHeader
-            title="Recent activity"
-            actionLabel="See more"
-            onAction={() => navigation.navigate('Activity')}
-          />
-          <View style={s.activityCard}>
-            {MOCK_ACTIVITY.map((item, i) => (
-              <ActivityItem
-                key={item._id}
-                item={item}
-                onViewReceipt={url => setViewingReceipt(url)}
+          {/* Loading state */}
+          {groupsLoading && !refreshing ? (
+            <View style={s.loaderCard}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={s.loaderText}>Loading groups...</Text>
+            </View>
+          ) : error ? (
+            /* Error state */
+            <View style={s.emptyCard}>
+              <Ionicons
+                name="wifi-outline"
+                size={28}
+                color={colors.textMuted}
               />
-            ))}
-          </View>
+              <Text style={s.emptyTitle}>Failed to load groups</Text>
+              <Text style={s.emptySubtitle}>{error}</Text>
+              <TouchableOpacity
+                style={s.retryBtn}
+                onPress={() => loadData().catch(() => {})}
+                activeOpacity={0.7}
+              >
+                <Text style={s.retryText}>Try again</Text>
+              </TouchableOpacity>
+            </View>
+          ) : filteredGroups.length === 0 ? (
+            /* Empty state */
+            <View style={s.emptyCard}>
+              <Ionicons
+                name="people-outline"
+                size={28}
+                color={colors.textMuted}
+              />
+              <Text style={s.emptyTitle}>
+                {search ? 'No groups found' : 'No groups yet'}
+              </Text>
+              <Text style={s.emptySubtitle}>
+                {search
+                  ? 'Try a different search term'
+                  : 'Create a group to start splitting expenses'}
+              </Text>
+              {!search && (
+                <TouchableOpacity
+                  onPress={() => {}}
+                  style={s.emptyButton}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="add" size={16} color={colors.textOnPrimary} />
+                  <Text style={s.emptyButtonText}>Create Group</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            /* Groups list — max 3 */
+            <View style={s.groupList}>
+              {filteredGroups.map(g => (
+                <GroupCard
+                  key={g._id}
+                  group={g}
+                  onPress={() =>
+                    navigation.navigate('GroupDetails', { groupId: g._id })
+                  }
+                  onAddExpense={() =>
+                    navigation.navigate('AddExpense', { groupId: g._id })
+                  }
+                  onSettleUp={() => {}}
+                />
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={{ height: spacing.xl }} />
       </ScrollView>
 
       {/* ── FAB ── */}
-      <TouchableOpacity style={s.fab} activeOpacity={0.85}>
+      <TouchableOpacity
+        style={s.fab}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('AddExpense')}
+      >
         <Text style={s.fabIcon}>＋</Text>
       </TouchableOpacity>
 
@@ -312,6 +424,31 @@ const s = StyleSheet.create({
     fontWeight: fontWeight.semibold,
   },
 
+  // Pending settlements banner
+  pendingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    borderBottomWidth: 1,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.warning,
+    backgroundColor: "#fffbeb", // ~8% opacity of your warning color
+    borderBottomColor: colors.warning + '30', // subtle warm border
+
+  },
+  pendingBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  pendingBannerText: {
+    fontSize: fontSize.sm,
+    color: colors.textPrimary,
+    fontWeight: fontWeight.medium,
+  },
+
   // Scroll
   scroll: {
     paddingHorizontal: spacing.md,
@@ -321,6 +458,9 @@ const s = StyleSheet.create({
   // Sections
   section: {
     marginTop: spacing.lg,
+  },
+  sectionSearching: {
+    marginTop: spacing.sm,
   },
   groupList: {
     gap: spacing.sm,
@@ -394,6 +534,86 @@ const s = StyleSheet.create({
   receiptImage: {
     width: '100%',
     height: 400,
+  },
+  loaderCard: {
+    backgroundColor: colors.bgCard,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.bgCardBorder,
+    padding: spacing.xl,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  loaderText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  emptyCard: {
+    backgroundColor: colors.bgCard,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.bgCardBorder,
+    padding: spacing.xl,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  emptyTitle: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+    marginTop: spacing.xs,
+  },
+  emptySubtitle: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: fontSize.sm * 1.4,
+  },
+  retryBtn: {
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.bgPage,
+    borderWidth: 1,
+    borderColor: colors.bgInputBorder,
+  },
+  retryText: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
+    fontWeight: fontWeight.medium,
+  },
+  createGroupBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+    backgroundColor: colors.bgCard,
+  },
+  createGroupText: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
+    fontWeight: fontWeight.medium,
+  },
+  emptyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+  },
+  emptyButtonText: {
+    fontSize: fontSize.sm,
+    color: colors.textOnPrimary,
+    fontWeight: fontWeight.medium,
   },
 });
 

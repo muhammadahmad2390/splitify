@@ -5,7 +5,7 @@ import Onboardings from '@/screens/Onboardings';
 import Splash from '@/screens/Splash';
 import AuthStack from '@/navigation/AuthStack';
 import { RootStackParamList } from '@/types/navigation';
-import AppTabs from './AppTabs';
+import MainStack from './MainStack';
 import { useAuthStore } from '@/store/AuthStore';
 
 const RootNavigator = createNativeStackNavigator<RootStackParamList>();
@@ -55,7 +55,7 @@ const RootNavigation = ({
       >
         <RootNavigator.Screen name="Onboarding" component={Onboardings} />
         <RootNavigator.Screen name="Auth" component={AuthStack} />
-        <RootNavigator.Screen name="Main" component={AppTabs} />
+        <RootNavigator.Screen name="Main" component={MainStack} />
       </RootNavigator.Navigator>
     </NavigationContainer>
   );

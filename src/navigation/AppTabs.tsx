@@ -3,6 +3,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { theme } from '@/theme';
 import HomeScreen from '@/screens/HomeScreen';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import GroupsScreen from '@/screens/GroupsScreen';
+import ActivityScreen from "@/screens/ActivityScreen";
 
 // ─── Placeholder screens — replace with real screens as you build them ────────
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,8 +19,8 @@ const Placeholder = ({ label }: { label: string }) => (
   </SafeAreaView>
 );
 
-const GroupsScreen = () => <Placeholder label="Groups" />;
-const ActivityScreen = () => <Placeholder label="Activity" />;
+
+
 const SettingsScreen = () => <Placeholder label="Settings" />;
 
 // ─── Tab icons ────────────────────────────────────────────────────────────────

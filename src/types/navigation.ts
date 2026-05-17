@@ -4,6 +4,13 @@ export type RootStackParamList = {
   Main: undefined;
 };
 
+export type MainStackParamList = {
+  Tabs: undefined;
+  CreateGroup: undefined;
+  AddExpense: { groupId?: string } | undefined;
+  GroupDetails: { groupId: string };
+};
+
 export type AuthStackParamList = {
   Login: undefined;
   Signup: undefined;
